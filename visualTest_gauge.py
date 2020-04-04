@@ -42,8 +42,8 @@ parser.add_argument('--cuda', default=True, type=bool,
                     help='Use cuda to train model')
 parser.add_argument('--video_path', default='./videos', help='Location of videos')
 parser.add_argument('--output_video_path', default='./results', help='Location of save videos')
-parser.add_argument('--fps', default=None, type=str, help="capture FPS")
-parser.add_argument('--output_fps', default=3, type=int, help="output FPS")
+parser.add_argument('--capture_fps', default=24, type=int, help="capture FPS")
+parser.add_argument('--output_fps', default=1, type=int, help="output FPS")
 parser.add_argument('--output_format', default='mp4', type=str, choices=['mov', 'mp4'], help='output video format')
 args = parser.parse_args()
 
@@ -60,6 +60,10 @@ def test_net(save_folder, net, cuda, testset, transform, thresh, labelmap):
     # dump predictions and assoc. ground truth to text file for now
     filename = save_folder + 'result_%s.txt'
     num_images = len(testset)
+    for label in labelmap:
+        path = filename % label
+        if os.path.exists(path):
+            os.remove(path)
     for i in tqdm(range(num_images)):
         # print('Testing image {:d}/{:d}....'.format(i+1, num_images))
         img = testset.pull_image(i)
@@ -341,6 +345,6 @@ if __name__ == '__main__':
         os.makedirs(args.output_video_path)
     filedir, filename = os.path.split(args.video_path)
     name, ext = os.path.splitext(filename)
-    videoCapture(args.video_path, os.path.join('./captures', name), labelmap_gauge[0])
+    videoCapture(args.video_path, os.path.join('./captures', name), labelmap_gauge[0], fps=args.capture_fps)
     frame_list = test_custom('./captures', name)
     videoSave(frame_list, os.path.join(args.output_video_path, name + '.' + args.output_format), fps=args.output_fps)

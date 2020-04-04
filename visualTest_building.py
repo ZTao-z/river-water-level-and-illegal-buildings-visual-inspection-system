@@ -28,19 +28,19 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
 parser.add_argument('--trained_model_building',
-                    default='useful_weight/CUSTOM_newdata_18.pth', type=str,
+                    default='useful_weight/CUSTOM_building_water.pth', type=str,
                     help='Trained state_dict file path to open')
 parser.add_argument('--save_folder', default='eval/', type=str,
                     help='Dir to save results')
-parser.add_argument('--visual_threshold', default=0.4, type=float,
+parser.add_argument('--visual_threshold', default=0.49, type=float,
                     help='Final confidence threshold') #0.38 0.5
 parser.add_argument('--cuda', default=True, type=bool,
                     help='Use cuda to train model')
 parser.add_argument('--video_path', default='./videos', help='Location of videos')
 parser.add_argument('--output_video_path', default='./results', help='Location of save videos')
-parser.add_argument('--fps', default=None, type=str, help="FPS")
+parser.add_argument('--capture_fps', default=24, type=int, help="capture FPS")
+parser.add_argument('--output_fps', default=1, type=int, help="output FPS")
 parser.add_argument('--output_format', default='mp4', type=str, choices=['mov', 'mp4'], help='output video format')
-parser.add_argument('-f', default=None, type=str, help="Dummy arg so we can load in Jupyter Notebooks")
 args = parser.parse_args()
 
 if args.cuda and torch.cuda.is_available():
@@ -56,6 +56,10 @@ def test_net(save_folder, net, cuda, testset, transform, thresh, labelmap):
     # dump predictions and assoc. ground truth to text file for now
     filename = save_folder + 'result_%s.txt'
     num_images = len(testset)
+    for label in labelmap:
+        path = filename % label
+        if os.path.exists(path):
+            os.remove(path)
     for i in tqdm(range(num_images)):
         # print('Testing image {:d}/{:d}....'.format(i+1, num_images))
         img = testset.pull_image(i)
@@ -144,24 +148,23 @@ def test_custom(video_path, video_name):
     set_type = 'test'
     frame_list = []
 
-    if not os.path.exists(os.path.join(args.save_folder, 'result_building.txt')):
-        # load net
-        num_classes_building = len(labelmap_building) + 1                      # +1 for background
-        net = build_ssd('test', 300, num_classes_building)            # initialize SSD
-        net.load_state_dict(torch.load(args.trained_model_building))
-        net.eval()
+    # load net
+    num_classes_building = len(labelmap_building) + 1                      # +1 for background
+    net = build_ssd('test', 300, num_classes_building)            # initialize SSD
+    net.load_state_dict(torch.load(args.trained_model_building))
+    net.eval()
 
-        print('Finished loading model!')
-        # load data
-        dataset1 = customDetection(video_path, [(video_name, set_type)], None, customAnnotationTransform(class_to_ind=dict(zip(CUSTOM_CLASSES_BUILDING, range(len(CUSTOM_CLASSES_BUILDING))))))
-        if args.cuda:
-            net = net.cuda()
-            cudnn.benchmark = True
-        # evaluation
-    
-        test_net(args.save_folder, net, args.cuda, dataset1,
-                BaseTransform(net.size, (104, 117, 123)),
-                thresh=args.visual_threshold, labelmap=labelmap_building)
+    print('Finished loading model!')
+    # load data
+    dataset1 = customDetection(video_path, [(video_name, set_type)], None, customAnnotationTransform(class_to_ind=dict(zip(CUSTOM_CLASSES_BUILDING, range(len(CUSTOM_CLASSES_BUILDING))))))
+    if args.cuda:
+        net = net.cuda()
+        cudnn.benchmark = True
+    # evaluation
+
+    test_net(args.save_folder, net, args.cuda, dataset1,
+            BaseTransform(net.size, (104, 117, 123)),
+            thresh=args.visual_threshold, labelmap=labelmap_building)
 
     rootPath = os.path.join(video_path, video_name)
     img_path = os.path.join(rootPath, 'JPEGImages', '%s.jpg')
@@ -274,6 +277,6 @@ if __name__ == '__main__':
         os.makedirs(args.output_video_path)
     filedir, filename = os.path.split(args.video_path)
     name, ext = os.path.splitext(filename)
-    videoCapture(args.video_path, os.path.join('./captures', name), labelmap_building[0])
+    videoCapture(args.video_path, os.path.join('./captures', name), labelmap_building[0], fps=args.capture_fps)
     frame_list = test_custom('./captures', name)
-    videoSave(frame_list, os.path.join(args.output_video_path, name + '.' + args.output_format), fps=1)
+    videoSave(frame_list, os.path.join(args.output_video_path, name + '.' + args.output_format), fps=args.output_fps)
