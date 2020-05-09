@@ -279,8 +279,11 @@ def test_custom(video_path, video_name):
     count = 0
     for name in imgList_gauge:
         img_gauge = imgList_gauge[name]
-        img_waterline = imgList_waterline[name]
-        img_mark = imgList_mark[name]
+        if name in imgList_waterline and name in imgList_mark:
+            img_waterline = imgList_waterline[name]
+            img_mark = imgList_mark[name]
+        else:
+            continue
         
         if not use_origin:
             image = cv2.imread(img_path % name)
