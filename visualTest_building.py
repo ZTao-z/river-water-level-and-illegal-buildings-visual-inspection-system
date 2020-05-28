@@ -8,7 +8,7 @@ import torch.utils.data as data
 from data import BaseTransform
 from data.custom_for_visual import CUSTOM_CLASSES_BUILDING as labelmap_building
 from data.custom_for_visual import customDetection, customAnnotationTransform, CUSTOM_ROOT, CUSTOM_CLASSES_BUILDING
-from videoOperation import videoCapture, videoSave
+from videoOperation import videoCapture, videoSave, imageCapture
 
 # from ssd import build_ssd
 from ssd_resnet_18 import build_ssd
@@ -41,6 +41,7 @@ parser.add_argument('--output_video_path', default='./results', help='Location o
 parser.add_argument('--capture_fps', default=24, type=int, help="capture FPS")
 parser.add_argument('--output_fps', default=1, type=int, help="output FPS")
 parser.add_argument('--output_format', default='mp4', type=str, choices=['mov', 'mp4'], help='output video format')
+parser.add_argument('--use_image', default='True', type=str, help='input image')
 args = parser.parse_args()
 
 if args.cuda and torch.cuda.is_available():
@@ -275,8 +276,13 @@ def test_custom(video_path, video_name):
 if __name__ == '__main__':
     if not os.path.exists(args.output_video_path):
         os.makedirs(args.output_video_path)
-    filedir, filename = os.path.split(args.video_path)
-    name, ext = os.path.splitext(filename)
-    videoCapture(args.video_path, os.path.join('./captures', name), labelmap_building[0], fps=args.capture_fps)
+    if args.use_image == 'True':
+        filedir, filename = os.path.split(args.video_path)
+        name = filename
+        imageCapture(args.video_path, os.path.join('./captures', name), labelmap_building[0])
+    else:
+        filedir, filename = os.path.split(args.video_path)
+        name, ext = os.path.splitext(filename)
+        videoCapture(args.video_path, os.path.join('./captures', name), labelmap_building[0], fps=args.capture_fps)
     frame_list = test_custom('./captures', name)
     videoSave(frame_list, os.path.join(args.output_video_path, name + '.' + args.output_format), fps=args.output_fps)

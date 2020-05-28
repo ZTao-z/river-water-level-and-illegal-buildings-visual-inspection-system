@@ -9,7 +9,7 @@ from data import BaseTransform
 from data.custom_for_visual import CUSTOM_CLASSES_GAUGE as labelmap_gauge
 from data.custom_for_visual import CUSTOM_CLASSES_WATERLINE as labelmap_waterline
 from data.custom_for_visual import customDetection, customAnnotationTransform, CUSTOM_ROOT, CUSTOM_CLASSES_GAUGE, CUSTOM_CLASSES_WATERLINE
-from videoOperation import videoCapture, videoSave
+from videoOperation import videoCapture, videoSave, imageCapture
 
 # from ssd import build_ssd
 from ssd_resnet_101 import build_ssd
@@ -36,7 +36,7 @@ parser.add_argument('--trained_model_waterline',
                     help='Trained state_dict file path to open')
 parser.add_argument('--save_folder', default='eval/', type=str,
                     help='Dir to save results')
-parser.add_argument('--visual_threshold', default=0.1, type=float,
+parser.add_argument('--visual_threshold', default=0.2, type=float,
                     help='Final confidence threshold')
 parser.add_argument('--cuda', default=True, type=bool,
                     help='Use cuda to train model')
@@ -45,6 +45,7 @@ parser.add_argument('--output_video_path', default='./results', help='Location o
 parser.add_argument('--capture_fps', default=24, type=int, help="capture FPS")
 parser.add_argument('--output_fps', default=1, type=int, help="output FPS")
 parser.add_argument('--output_format', default='mp4', type=str, choices=['mov', 'mp4'], help='output video format')
+parser.add_argument('--use_image', default='True', type=str, help='input image')
 args = parser.parse_args()
 
 if args.cuda and torch.cuda.is_available():
@@ -346,8 +347,13 @@ def test_custom(video_path, video_name):
 if __name__ == '__main__':
     if not os.path.exists(args.output_video_path):
         os.makedirs(args.output_video_path)
-    filedir, filename = os.path.split(args.video_path)
-    name, ext = os.path.splitext(filename)
-    videoCapture(args.video_path, os.path.join('./captures', name), labelmap_gauge[0], fps=args.capture_fps)
+    if args.use_image == 'True':
+        filedir, filename = os.path.split(args.video_path)
+        name = filename
+        imageCapture(args.video_path, os.path.join('./captures', name), labelmap_gauge[0])
+    else:
+        filedir, filename = os.path.split(args.video_path)
+        name, ext = os.path.splitext(filename)
+        videoCapture(args.video_path, os.path.join('./captures', name), labelmap_gauge[0], fps=args.capture_fps)
     frame_list = test_custom('./captures', name)
     videoSave(frame_list, os.path.join(args.output_video_path, name + '.' + args.output_format), fps=args.output_fps)

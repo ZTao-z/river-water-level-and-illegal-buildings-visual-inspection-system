@@ -1,6 +1,8 @@
 import cv2
 import os
 from tqdm import tqdm
+from pathlib import Path
+from shutil import copyfile
 
 def xmlData(name, width, height, label):
     return '''<annotation>
@@ -64,6 +66,27 @@ def videoCapture(video_path, save_path, label, fps=24):
                 f.write("v-%06d\n" % frame_count)
                 frame_count += 1
     vc.release()
+
+def imageCapture(image_path, save_path, label):
+    p = Path(image_path)
+    JPEGImages_path = os.path.join(save_path, "JPEGImages")
+    Annotations_path = os.path.join(save_path, "Annotations")
+    ImageSets_path = os.path.join(save_path, "ImageSets/Main")
+
+    if not os.path.exists(JPEGImages_path):
+        os.makedirs(JPEGImages_path)
+    
+    if not os.path.exists(Annotations_path):
+        os.makedirs(Annotations_path)
+    
+    if not os.path.exists(ImageSets_path):
+        os.makedirs(ImageSets_path)
+    with open(os.path.join(ImageSets_path, 'test.txt'), 'w') as f:
+        for file in list(p.glob('*.jpg')):
+            copyfile(file, os.path.join(JPEGImages_path, file.name))
+            with open(os.path.join(Annotations_path, '%s.xml' % file.stem), 'w') as f_xml:
+                f_xml.write(xmlData('%s' % file.stem, 0, 0, label))
+            f.write("%s\n" % file.stem)
 
 def videoSave(frameList, save_path, fps=24):
     size = (512, 512)
